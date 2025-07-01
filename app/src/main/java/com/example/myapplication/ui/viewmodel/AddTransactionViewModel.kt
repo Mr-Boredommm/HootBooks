@@ -32,6 +32,11 @@ class AddTransactionViewModel @Inject constructor(
 
     init {
         loadCategories()
+        // 确保UI状态初始化时就有默认的交易类型和初始数据
+        _uiState.value = _uiState.value.copy(
+            transactionType = TransactionType.EXPENSE,
+            amount = "0"
+        )
     }
 
     /**
@@ -39,8 +44,24 @@ class AddTransactionViewModel @Inject constructor(
      */
     private fun loadCategories() {
         viewModelScope.launch {
-            repository.getAllCategories().collect { categoryList ->
-                _categories.value = categoryList
+            try {
+                repository.getAllCategories().collect { categoryList ->
+                    _categories.value = categoryList
+
+                    // 如果还没有选中分类且有可用分类，自动选择第一个合适的分类
+                    if (_uiState.value.selectedCategory == null) {
+                        val currentTypeCategories = categoryList.filter {
+                            it.type == _uiState.value.transactionType
+                        }
+                        if (currentTypeCategories.isNotEmpty()) {
+                            // 不自动选择分类，让用户手动选择
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "加载分类数据失败: ${e.message}"
+                )
             }
         }
     }
@@ -93,8 +114,8 @@ class AddTransactionViewModel @Inject constructor(
     private fun isFormValid(): Boolean {
         val state = _uiState.value
         return state.isAmountValid &&
-               state.selectedCategory != null &&
-               state.amount.isNotBlank()
+                state.selectedCategory != null &&
+                state.amount.isNotBlank()
     }
 
     /**

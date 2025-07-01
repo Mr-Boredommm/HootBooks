@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,12 +23,44 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 设置固定的显示密度，确保UI一致性
+        setFixedDensity()
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
                 ExpenseApp()
             }
         }
+    }
+
+    /**
+     * 设置固定的显示密度
+     * 确保在所有设备上都有一致的UI显示效果
+     */
+    private fun setFixedDensity() {
+        val displayMetrics = resources.displayMetrics
+
+        // 设置目标密度为2.0，这相当于中等偏小的显示尺寸
+        // 这个值可以根据实际效果进行调整
+        val targetDensity = 2.7f
+        val targetDensityDpi = (160 * targetDensity).toInt()
+        val targetScaledDensity = targetDensity
+
+        displayMetrics.density = targetDensity
+        displayMetrics.densityDpi = targetDensityDpi
+        displayMetrics.scaledDensity = targetScaledDensity
+    }
+
+    /**
+     * 处理配置变化
+     * 在这里可以根据需要重新设置显示密度
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // 这里可以根据新的配置重新设置密度
+        setFixedDensity()
     }
 }
 

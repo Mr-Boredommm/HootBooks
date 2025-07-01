@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -99,7 +100,7 @@ fun CalculatorKeyboard(
                 CalculatorButton(".", { onNumberClick(".") }, Modifier.weight(1f))
                 CalculatorButton(
                     text = "✓",
-                    onClick = { /* 确认输入 - 可以用于保存或其他操作 */ },
+                    onClick = { /* 确认输入 */ },
                     modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -110,7 +111,7 @@ fun CalculatorKeyboard(
 }
 
 /**
- * 计算器按钮组件
+ * 计算器按钮组件 - 固定尺寸版本
  */
 @Composable
 private fun CalculatorButton(
@@ -122,7 +123,9 @@ private fun CalculatorButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
+        modifier = modifier
+            .aspectRatio(1f)
+            .height(56.dp), // 固定高度，确保一致性
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
             contentColor = contentColor
@@ -138,7 +141,7 @@ private fun CalculatorButton(
 }
 
 /**
- * 计算器图标按钮组件
+ * 计算器图标按钮组件 - 固定尺寸版本
  */
 @Composable
 private fun CalculatorIconButton(
@@ -150,7 +153,9 @@ private fun CalculatorIconButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
+        modifier = modifier
+            .aspectRatio(1f)
+            .height(56.dp), // 固定高度，确保一致性
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
             contentColor = contentColor
@@ -160,7 +165,7 @@ private fun CalculatorIconButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp) // 固定图标大小
         )
     }
 }
