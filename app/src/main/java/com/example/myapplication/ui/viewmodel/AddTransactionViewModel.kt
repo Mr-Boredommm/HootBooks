@@ -3,6 +3,7 @@ package com.example.myapplication.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Category
+import com.example.myapplication.data.model.DefaultCategories
 import com.example.myapplication.data.model.Transaction
 import com.example.myapplication.data.model.TransactionType
 import com.example.myapplication.data.repository.ExpenseRepository
@@ -10,9 +11,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneOffset
+import java.util.Calendar
+import java.util.Date
 import javax.inject.Inject
 
 /**
@@ -45,23 +47,52 @@ class AddTransactionViewModel @Inject constructor(
     private fun loadCategories() {
         viewModelScope.launch {
             try {
+                // 先确保有默认分类数据
+                ensureDefaultCategories()
+
                 repository.getAllCategories().collect { categoryList ->
                     _categories.value = categoryList
-
-                    // 如果还没有选中分类且有可用分类，自动选择第一个合适的分类
-                    if (_uiState.value.selectedCategory == null) {
-                        val currentTypeCategories = categoryList.filter {
-                            it.type == _uiState.value.transactionType
-                        }
-                        if (currentTypeCategories.isNotEmpty()) {
-                            // 不自动选择分类，让用户手动选择
-                        }
-                    }
+                    // 移除未使用的currentTypeCategories变量
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "加载分类数据失败: ${e.message}"
                 )
+                // 如果加载失败，尝试创建默认分类
+                ensureDefaultCategories()
+            }
+        }
+    }
+
+    /**
+     * 确保默认分类存在
+     */
+    private suspend fun ensureDefaultCategories() {
+        try {
+            // 获取当前分类列表
+            val categories = repository.getAllCategories().first()
+
+            if (categories.isEmpty()) {
+                // 如果没有分类，添加默认分类
+                DefaultCategories.expenseCategories.forEach { category ->
+                    repository.addCategory(category)
+                }
+                DefaultCategories.incomeCategories.forEach { category ->
+                    repository.addCategory(category)
+                }
+            }
+        } catch (e: Exception) {
+            // 如果出错，直接添加默认分类
+            try {
+                DefaultCategories.expenseCategories.forEach { category ->
+                    repository.addCategory(category)
+                }
+                DefaultCategories.incomeCategories.forEach { category ->
+                    repository.addCategory(category)
+                }
+            } catch (addError: Exception) {
+                e.printStackTrace()
+                addError.printStackTrace()
             }
         }
     }
@@ -104,7 +135,7 @@ class AddTransactionViewModel @Inject constructor(
     /**
      * 设置日期
      */
-    fun setDate(date: LocalDate) {
+    fun setDate(date: Date) {
         _uiState.value = _uiState.value.copy(selectedDate = date)
     }
 
@@ -139,7 +170,7 @@ class AddTransactionViewModel @Inject constructor(
                     categoryId = state.selectedCategory!!.id,
                     type = state.transactionType,
                     note = state.note,
-                    date = state.selectedDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000
+                    date = state.selectedDate.time // 使用Date.time获取时间戳
                 )
 
                 repository.addTransaction(transaction)
@@ -187,7 +218,7 @@ data class AddTransactionUiState(
     val isAmountValid: Boolean = false,
     val selectedCategory: Category? = null,
     val note: String = "",
-    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedDate: Date = Date(),
     val isLoading: Boolean = false,
     val error: String? = null
 )

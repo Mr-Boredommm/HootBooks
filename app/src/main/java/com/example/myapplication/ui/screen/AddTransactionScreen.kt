@@ -22,7 +22,7 @@ import com.example.myapplication.ui.component.CategoryChip
 import com.example.myapplication.ui.theme.ExpenseRed
 import com.example.myapplication.ui.theme.IncomeGreen
 import com.example.myapplication.ui.viewmodel.AddTransactionViewModel
-import java.time.format.DateTimeFormatter
+import java.util.*
 
 /**
  * 添加交易页面
@@ -82,6 +82,10 @@ fun AddTransactionScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
+            // 分类选择
+            val filteredCategories = remember(uiState.transactionType, categories) {
+                categories.filter { it.type == uiState.transactionType }
+            }
             // 分类选择
             CategorySelection(
                 categories = viewModel.getCategoriesForCurrentType(),
@@ -234,6 +238,7 @@ private fun AmountDisplay(
  * 分类选择
  */
 @Composable
+
 private fun CategorySelection(
     categories: List<Category>,
     selectedCategory: Category?,
@@ -263,13 +268,13 @@ private fun CategorySelection(
 }
 
 /**
- * 日期和备注部分
+ * 日期和备注选择部分
  */
 @Composable
 private fun DateAndNoteSection(
-    selectedDate: java.time.LocalDate,
+    selectedDate: Date,
     note: String,
-    onDateSelected: (java.time.LocalDate) -> Unit,
+    onDateSelected: (Date) -> Unit,
     onNoteChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -284,7 +289,7 @@ private fun DateAndNoteSection(
                 contentDescription = "选择日期"
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(selectedDate.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")))
+            Text(formatDate(selectedDate))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -298,4 +303,16 @@ private fun DateAndNoteSection(
             maxLines = 3
         )
     }
+}
+
+/**
+ * 格式化日期显示
+ */
+private fun formatDate(date: Date): String {
+    val calendar = Calendar.getInstance()
+    calendar.time = date
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH 是从0开始的
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    return "${year}年${month.toString().padStart(2, '0')}月${day.toString().padStart(2, '0')}日"
 }
