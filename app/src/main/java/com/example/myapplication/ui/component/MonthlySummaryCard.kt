@@ -15,10 +15,11 @@ import com.example.myapplication.ui.theme.ExpenseRed
 import com.example.myapplication.ui.theme.IncomeGreen
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 /**
  * 月度统计卡片组件
- * 显示当月的收入、支出和余额统计
+ * 主要显示支出信息，次要显示收入，不显示余额
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,68 +55,72 @@ fun MonthlySummaryCard(
                 )
 
                 Text(
-                    text = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月")),
+                    text = getCurrentMonthText(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 余额显示
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "余额",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-
-                Text(
-                    text = summary.getFormattedBalance(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (summary.balance >= 0) IncomeGreen else ExpenseRed
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 收入和支出统计
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            // 主要显示：支出
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // 收入
-                SummaryItem(
-                    icon = Icons.Default.TrendingUp,
-                    title = "收入",
-                    amount = summary.getFormattedIncome(),
-                    color = IncomeGreen,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.TrendingDown,
+                        contentDescription = "支出",
+                        tint = ExpenseRed,
+                        modifier = Modifier.size(28.dp)
+                    )
 
-                // 分隔线
-                Divider(
-                    modifier = Modifier
-                        .height(60.dp)
-                        .width(1.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                )
+                    Text(
+                        text = "本月支出",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
 
-                // 支出
-                SummaryItem(
-                    icon = Icons.Default.TrendingDown,
-                    title = "支出",
-                    amount = summary.getFormattedExpense(),
-                    color = ExpenseRed,
-                    modifier = Modifier.weight(1f)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = summary.getFormattedExpense(),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = ExpenseRed
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 次要显示：收入（更小的字体和不太显眼的位置）
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = "收入",
+                    tint = IncomeGreen,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "收入 ${summary.getFormattedIncome()}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = IncomeGreen
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 交易笔数
             Text(
@@ -129,40 +134,11 @@ fun MonthlySummaryCard(
 }
 
 /**
- * 统计项组件
+ * 获取当前月份文本（兼容API 24+）
  */
-@Composable
-private fun SummaryItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    amount: String,
-    color: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = color,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-
-        Text(
-            text = amount,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-    }
+private fun getCurrentMonthText(): String {
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) + 1
+    return "${year}年${month.toString().padStart(2, '0')}月"
 }
