@@ -32,7 +32,58 @@ fun CalculatorKeyboard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 第一行：C, ±, %, ÷
+            // 第一行：7, 8, 9, 删除
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CalculatorButton("7", { onNumberClick("7") }, Modifier.weight(1f))
+                CalculatorButton("8", { onNumberClick("8") }, Modifier.weight(1f))
+                CalculatorButton("9", { onNumberClick("9") }, Modifier.weight(1f))
+                CalculatorIconButton(
+                    icon = Icons.Default.Backspace,
+                    onClick = onDeleteClick,
+                    modifier = Modifier.weight(1f),
+                    backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            // 第二行：4, 5, 6, +
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CalculatorButton("4", { onNumberClick("4") }, Modifier.weight(1f))
+                CalculatorButton("5", { onNumberClick("5") }, Modifier.weight(1f))
+                CalculatorButton("6", { onNumberClick("6") }, Modifier.weight(1f))
+                CalculatorButton(
+                    text = "+",
+                    onClick = { onOperatorClick("+") },
+                    modifier = Modifier.weight(1f),
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            // 第三行：1, 2, 3, -
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CalculatorButton("1", { onNumberClick("1") }, Modifier.weight(1f))
+                CalculatorButton("2", { onNumberClick("2") }, Modifier.weight(1f))
+                CalculatorButton("3", { onNumberClick("3") }, Modifier.weight(1f))
+                CalculatorButton(
+                    text = "-",
+                    onClick = { onOperatorClick("-") },
+                    modifier = Modifier.weight(1f),
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            // 第四行：C, 0, ., 确认
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -44,94 +95,14 @@ fun CalculatorKeyboard(
                     backgroundColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer
                 )
-                CalculatorButton(
-                    text = "±",
-                    onClick = { onOperatorClick("±") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                CalculatorButton(
-                    text = "%",
-                    onClick = { onOperatorClick("%") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                CalculatorButton(
-                    text = "÷",
-                    onClick = { onOperatorClick("÷") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // 第二行：7, 8, 9, ×
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("7", { onNumberClick("7") }, Modifier.weight(1f))
-                CalculatorButton("8", { onNumberClick("8") }, Modifier.weight(1f))
-                CalculatorButton("9", { onNumberClick("9") }, Modifier.weight(1f))
-                CalculatorButton(
-                    text = "×",
-                    onClick = { onOperatorClick("×") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // 第三行：4, 5, 6, -
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("4", { onNumberClick("4") }, Modifier.weight(1f))
-                CalculatorButton("5", { onNumberClick("5") }, Modifier.weight(1f))
-                CalculatorButton("6", { onNumberClick("6") }, Modifier.weight(1f))
-                CalculatorButton(
-                    text = "-",
-                    onClick = { onOperatorClick("-") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // 第四行：1, 2, 3, +
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("1", { onNumberClick("1") }, Modifier.weight(1f))
-                CalculatorButton("2", { onNumberClick("2") }, Modifier.weight(1f))
-                CalculatorButton("3", { onNumberClick("3") }, Modifier.weight(1f))
-                CalculatorButton(
-                    text = "+",
-                    onClick = { onOperatorClick("+") },
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // 第五行：00, 0, ., 删除
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("00", { onNumberClick("00") }, Modifier.weight(1f))
                 CalculatorButton("0", { onNumberClick("0") }, Modifier.weight(1f))
                 CalculatorButton(".", { onNumberClick(".") }, Modifier.weight(1f))
-                CalculatorIconButton(
-                    icon = Icons.Default.Backspace,
-                    onClick = onDeleteClick,
+                CalculatorButton(
+                    text = "✓",
+                    onClick = { /* 确认输入 - 可以用于保存或其他操作 */ },
                     modifier = Modifier.weight(1f),
-                    backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }

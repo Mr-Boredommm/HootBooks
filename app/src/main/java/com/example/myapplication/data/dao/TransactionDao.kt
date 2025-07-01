@@ -37,6 +37,12 @@ interface TransactionDao {
     fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>>
 
     /**
+     * 获取最近的交易记录
+     */
+    @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit")
+    fun getRecentTransactions(limit: Int): Flow<List<Transaction>>
+
+    /**
      * 根据ID获取交易记录
      */
     @Query("SELECT * FROM transactions WHERE id = :id")
@@ -119,10 +125,10 @@ interface TransactionDao {
     fun searchTransactions(query: String): Flow<List<Transaction>>
 
     /**
-     * 获取最近的交易记录
+     * 根据分类ID获取交易记录数量
      */
-    @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit")
-    fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
+    @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
+    suspend fun getTransactionCountByCategory(categoryId: Long): Int
 }
 
 /**

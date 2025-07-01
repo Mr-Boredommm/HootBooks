@@ -153,49 +153,90 @@ class ExpenseRepository @Inject constructor(
     ): List<CategoryStatistics> {
         val startTimestamp = startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000
         val endTimestamp = endDate.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC) * 1000
+        val results = transactionDao.getCategoryStatistics(type, startTimestamp, endTimestamp)
 
-        val statisticsResults = transactionDao.getCategoryStatistics(type, startTimestamp, endTimestamp)
-        val totalAmount = statisticsResults.sumOf { it.totalAmount }
-
-        return statisticsResults.mapNotNull { result ->
+        // 转换CategoryStatisticsResult到CategoryStatistics
+        return results.map { result ->
             val category = categoryDao.getCategoryById(result.categoryId)
-            category?.let {
-                CategoryStatistics(
-                    category = it,
-                    totalAmount = result.totalAmount,
-                    transactionCount = result.transactionCount,
-                    percentage = if (totalAmount > 0) (result.totalAmount / totalAmount * 100).toFloat() else 0f
+                ?: Category(
+                    id = result.categoryId,
+                    name = "未知分类",
+                    icon = "help_outline",
+                    type = type,
+                    color = "#666666"
                 )
-            }
-        }
-    }
 
-    /**
-     * 获取日统计数据（用于图表）
-     */
-    suspend fun getDailyStatistics(startDate: LocalDate, endDate: LocalDate) =
-        transactionDao.getDailyStatistics(
-            startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000,
-            endDate.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC) * 1000
-        )
-
-    /**
-     * 获取当前月度摘要的Flow
-     */
-    fun getCurrentMonthlySummaryFlow(): Flow<TransactionSummary> {
-        val now = LocalDate.now()
-        val startDate = now.withDayOfMonth(1)
-        val endDate = now.withDayOfMonth(now.lengthOfMonth())
-
-        return getTransactionsByDateRange(startDate, endDate).map { transactions ->
-            val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-            val expense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-
-            TransactionSummary(
-                totalIncome = income,
-                totalExpense = expense,
-                transactionCount = transactions.size
+            CategoryStatistics(
+                category = category,
+                totalAmount = result.totalAmount,
+                transactionCount = result.transactionCount
             )
         }
     }
+
+    /**
+     * 根据月份获取交易记录
+     */
+    fun getTransactionsByMonth(year: Int, month: Int): Flow<List<Transaction>> {
+        val startDate = LocalDate.of(year, month, 1)
+        val endDate = startDate.withDayOfMonth(startDate.lengthOfMonth())
+        return getTransactionsByDateRange(startDate, endDate)
+    }
+
+    /**
+     * 获取当前月度统计的Flow
+     */
+    fun getCurrentMonthlySummaryFlow(): Flow<TransactionSummary> {
+        val now = LocalDate.now()
+        return getTransactionsByMonth(now.year, now.monthValue)
+            .map { transactions ->
+                val income = transactions.filter { it.type == TransactionType.INCOME }
+                    .sumOf { it.amount }
+                val expense = transactions.filter { it.type == TransactionType.EXPENSE }
+                    .sumOf { it.amount }
+                TransactionSummary(income, expense, transactions.size)
+            }
+    }
+
+    /**
+     * 获取年度统计数据
+     */
+    suspend fun getYearlySummary(year: Int): TransactionSummary {
+        val startDate = LocalDate.of(year, 1, 1)
+        val endDate = LocalDate.of(year, 12, 31)
+
+        val startTimestamp = startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000
+        val endTimestamp = endDate.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC) * 1000
+
+        val summaryResults = transactionDao.getMonthlySummary(startTimestamp, endTimestamp)
+
+        var totalIncome = 0.0
+        var totalExpense = 0.0
+        var transactionCount = 0
+
+        summaryResults.forEach { result ->
+            when (result.type) {
+                TransactionType.INCOME -> totalIncome = result.total
+                TransactionType.EXPENSE -> totalExpense = result.total
+            }
+            transactionCount += result.count
+        }
+
+        return TransactionSummary(totalIncome, totalExpense, transactionCount)
+    }
+
+    // ==================== 数据验证和业务逻辑 ====================
+
+    /**
+     * 验证交易数据
+     */
+    fun validateTransaction(transaction: Transaction): Boolean {
+        return transaction.amount > 0 && transaction.categoryId > 0
+    }
+
+    /**
+     * 获取分类使用统计（用于删除前检查）
+     */
+    suspend fun getCategoryUsageCount(categoryId: Long): Int =
+        transactionDao.getTransactionCountByCategory(categoryId)
 }

@@ -41,36 +41,38 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                // 加载最近交易记录
-                repository.getRecentTransactions(10)
-                    .catch { e ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = e.message
-                        )
-                    }
-                    .collect { transactions ->
-                        _recentTransactions.value = transactions
-                    }
+                // 并行加载数据
+                launch {
+                    repository.getRecentTransactions(10)
+                        .catch { e ->
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = e.message
+                            )
+                        }
+                        .collect { transactions ->
+                            _recentTransactions.value = transactions
+                        }
+                }
 
-                // 加载当月统计
-                repository.getCurrentMonthlySummaryFlow()
-                    .catch { e ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = e.message
-                        )
-                    }
-                    .collect { summary ->
-                        _monthlySummary.value = summary
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = null
-                        )
-                    }
+                launch {
+                    repository.getCurrentMonthlySummaryFlow()
+                        .catch { e ->
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = e.message
+                            )
+                        }
+                        .collect { summary ->
+                            _monthlySummary.value = summary
+                        }
+                }
+
+                // 设置加载完成状态
+                _uiState.value = _uiState.value.copy(isLoading = false)
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
