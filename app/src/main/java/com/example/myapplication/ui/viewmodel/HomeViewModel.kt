@@ -1,0 +1,118 @@
+package com.example.myapplication.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.myapplication.data.model.Transaction
+import com.example.myapplication.data.model.TransactionSummary
+import com.example.myapplication.data.repository.ExpenseRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
+
+/**
+ * 主页面ViewModel
+ * 管理主页面的UI状态和业务逻辑
+ */
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: ExpenseRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _recentTransactions = MutableStateFlow<List<Transaction>>(emptyList())
+    val recentTransactions: StateFlow<List<Transaction>> = _recentTransactions.asStateFlow()
+
+    private val _monthlySummary = MutableStateFlow(TransactionSummary())
+    val monthlySummary: StateFlow<TransactionSummary> = _monthlySummary.asStateFlow()
+
+    init {
+        loadData()
+    }
+
+    /**
+     * 加载主页数据
+     */
+    private fun loadData() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            try {
+                // 加载最近交易记录
+                repository.getRecentTransactions(10)
+                    .catch { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = e.message
+                        )
+                    }
+                    .collect { transactions ->
+                        _recentTransactions.value = transactions
+                    }
+
+                // 加载当月统计
+                repository.getCurrentMonthlySummaryFlow()
+                    .catch { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = e.message
+                        )
+                    }
+                    .collect { summary ->
+                        _monthlySummary.value = summary
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
+    }
+
+    /**
+     * 删除交易记录
+     */
+    fun deleteTransaction(transaction: Transaction) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTransaction(transaction)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    /**
+     * 刷新数据
+     */
+    fun refresh() {
+        loadData()
+    }
+
+    /**
+     * 清除错误状态
+     */
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+}
+
+/**
+ * 主页面UI状态
+ */
+data class HomeUiState(
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
