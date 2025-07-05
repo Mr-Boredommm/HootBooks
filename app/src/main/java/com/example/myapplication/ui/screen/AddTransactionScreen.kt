@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +21,7 @@ import com.example.myapplication.ui.component.CalculatorKeyboard
 import com.example.myapplication.ui.component.CategoryChip
 import com.example.myapplication.ui.theme.ExpenseRed
 import com.example.myapplication.ui.theme.IncomeGreen
+import com.example.myapplication.ui.viewmodel.AddTransactionUiState
 import com.example.myapplication.ui.viewmodel.AddTransactionViewModel
 import java.util.*
 
@@ -44,7 +45,7 @@ fun AddTransactionScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
                         )
                     }
@@ -83,12 +84,8 @@ fun AddTransactionScreen(
             )
 
             // 分类选择
-            val filteredCategories = remember(uiState.transactionType, categories) {
-                categories.filter { it.type == uiState.transactionType }
-            }
-            // 分类选择
             CategorySelection(
-                categories = viewModel.getCategoriesForCurrentType(),
+                categories = categories.filter { it.type == uiState.transactionType },
                 selectedCategory = uiState.selectedCategory,
                 onCategorySelected = viewModel::setSelectedCategory,
                 modifier = Modifier.padding(16.dp)
@@ -111,12 +108,13 @@ fun AddTransactionScreen(
                     val newAmount = if (uiState.amount == "0") number else uiState.amount + number
                     viewModel.setAmount(newAmount)
                 },
-                onOperatorClick = { /* TODO: 实现运算功能 */ },
+                onOperatorClick = viewModel::onOperatorClick,
                 onDeleteClick = {
                     val newAmount = if (uiState.amount.length <= 1) "0" else uiState.amount.dropLast(1)
                     viewModel.setAmount(newAmount)
                 },
                 onClearClick = { viewModel.setAmount("0") },
+                onEqualsClick = viewModel::calculateResult,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -220,7 +218,7 @@ private fun AmountDisplay(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "${if (transactionType == TransactionType.EXPENSE) "-" else "+"}¥$amount",
+                text = "${if (transactionType == TransactionType.EXPENSE) "支出" else "收入"}¥$amount",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isValid) {

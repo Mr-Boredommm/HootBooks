@@ -90,6 +90,9 @@ dependencies {
     // Icons
     implementation("androidx.compose.material:material-icons-extended:1.5.8")
 
+    // Expression Evaluator (exp4j)
+    implementation("net.objecthunter:exp4j:0.4.8")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

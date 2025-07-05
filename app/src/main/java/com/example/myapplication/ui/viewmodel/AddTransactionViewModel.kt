@@ -1,224 +1,128 @@
 package com.example.myapplication.ui.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Category
-import com.example.myapplication.data.model.DefaultCategories
 import com.example.myapplication.data.model.Transaction
 import com.example.myapplication.data.model.TransactionType
 import com.example.myapplication.data.repository.ExpenseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Calendar
+import net.objecthunter.exp4j.ExpressionBuilder
 import java.util.Date
 import javax.inject.Inject
 
-/**
- * 添加交易ViewModel
- * 管理添加/编辑交易的UI状态和业务逻辑
- */
+data class AddTransactionUiState(
+    val amount: String = "0",
+    val transactionType: TransactionType = TransactionType.EXPENSE,
+    val selectedCategory: Category? = null,
+    val selectedDate: Date = Date(),
+    val note: String = "",
+    val isAmountValid: Boolean = true,
+    val error: String? = null
+)
+
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
-    private val repository: ExpenseRepository
+    private val expenseRepository: ExpenseRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddTransactionUiState())
-    val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
+    val uiState = _uiState.asStateFlow()
 
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
-
-    init {
-        loadCategories()
-        // 确保UI状态初始化时就有默认的交易类型和初始数据
-        _uiState.value = _uiState.value.copy(
-            transactionType = TransactionType.EXPENSE,
-            amount = "0"
+    val categories: StateFlow<List<Category>> = expenseRepository.getAllCategories()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
         )
+
+    fun setAmount(amount: String) {
+        _uiState.update { it.copy(amount = amount, isAmountValid = true) }
     }
 
-    /**
-     * 加载分类数据
-     */
-    private fun loadCategories() {
-        viewModelScope.launch {
-            try {
-                // 先确保有默认分类数据
-                ensureDefaultCategories()
+    fun setTransactionType(type: TransactionType) {
+        _uiState.update { it.copy(transactionType = type, selectedCategory = null) }
+    }
 
-                repository.getAllCategories().collect { categoryList ->
-                    _categories.value = categoryList
-                    // 移除未使用的currentTypeCategories变量
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "加载分类数据失败: ${e.message}"
-                )
-                // 如果加载失败，尝试创建默认分类
-                ensureDefaultCategories()
+    fun setSelectedCategory(category: Category) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
+
+    fun setDate(date: Date) {
+        _uiState.update { it.copy(selectedDate = date) }
+    }
+
+    fun setNote(note: String) {
+        _uiState.update { it.copy(note = note) }
+    }
+
+    fun getCategoriesForCurrentType(): List<Category> {
+        // This is a placeholder. You should replace it with your actual logic.
+        return emptyList()
+    }
+
+    fun onOperatorClick(operator: String) {
+        _uiState.update {
+            val currentAmount = it.amount
+            if (currentAmount.isNotEmpty() && "+-*/".contains(currentAmount.last())) {
+                it.copy(amount = currentAmount.dropLast(1) + operator)
+            } else {
+                it.copy(amount = currentAmount + operator)
             }
         }
     }
 
-    /**
-     * 确保默认分类存在
-     */
-    private suspend fun ensureDefaultCategories() {
+    fun calculateResult() {
+        val expression = _uiState.value.amount
         try {
-            // 获取当前分类列表
-            val categories = repository.getAllCategories().first()
-
-            if (categories.isEmpty()) {
-                // 如果没有分类，添加默认分类
-                DefaultCategories.expenseCategories.forEach { category ->
-                    repository.addCategory(category)
-                }
-                DefaultCategories.incomeCategories.forEach { category ->
-                    repository.addCategory(category)
-                }
+            val result = evaluateExpression(expression)
+            _uiState.update {
+                it.copy(
+                    amount = result.toString(),
+                    isAmountValid = result > 0
+                )
             }
         } catch (e: Exception) {
-            // 如果出错，直接添加默认分类
-            try {
-                DefaultCategories.expenseCategories.forEach { category ->
-                    repository.addCategory(category)
-                }
-                DefaultCategories.incomeCategories.forEach { category ->
-                    repository.addCategory(category)
-                }
-            } catch (addError: Exception) {
-                e.printStackTrace()
-                addError.printStackTrace()
-            }
+            _uiState.update { it.copy(error = "Invalid expression") }
         }
     }
 
-    /**
-     * 设置交易类型
-     */
-    fun setTransactionType(type: TransactionType) {
-        _uiState.value = _uiState.value.copy(
-            transactionType = type,
-            selectedCategory = null // 重置分类选择
-        )
-    }
-
-    /**
-     * 设置金额
-     */
-    fun setAmount(amount: String) {
-        val doubleAmount = amount.toDoubleOrNull()
-        _uiState.value = _uiState.value.copy(
-            amount = amount,
-            isAmountValid = doubleAmount != null && doubleAmount > 0
-        )
-    }
-
-    /**
-     * 设置选中的分类
-     */
-    fun setSelectedCategory(category: Category) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
-    }
-
-    /**
-     * 设置备注
-     */
-    fun setNote(note: String) {
-        _uiState.value = _uiState.value.copy(note = note)
-    }
-
-    /**
-     * 设置日期
-     */
-    fun setDate(date: Date) {
-        _uiState.value = _uiState.value.copy(selectedDate = date)
-    }
-
-    /**
-     * 检查表单是否有效
-     */
-    private fun isFormValid(): Boolean {
-        val state = _uiState.value
-        return state.isAmountValid &&
-                state.selectedCategory != null &&
-                state.amount.isNotBlank()
-    }
-
-    /**
-     * 保存交易记录
-     */
     fun saveTransaction(onSuccess: () -> Unit) {
-        if (!isFormValid()) {
-            _uiState.value = _uiState.value.copy(
-                error = "请填写完整的交易信息"
-            )
-            return
-        }
-
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
-            try {
-                val state = _uiState.value
-                val transaction = Transaction(
-                    amount = state.amount.toDouble(),
-                    categoryId = state.selectedCategory!!.id,
-                    type = state.transactionType,
-                    note = state.note,
-                    date = state.selectedDate.time // 使用Date.time获取时间戳
-                )
-
-                repository.addTransaction(transaction)
-
-                _uiState.value = _uiState.value.copy(isLoading = false)
-                onSuccess()
-
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "保存失败"
-                )
+            val currentState = _uiState.value
+            if (currentState.selectedCategory == null) {
+                _uiState.update { it.copy(error = "Please select a category") }
+                return@launch
             }
+            if (currentState.amount.toDoubleOrNull() == null || currentState.amount.toDouble() <= 0) {
+                _uiState.update { it.copy(error = "Invalid amount") }
+                return@launch
+            }
+
+            val transaction = Transaction(
+                id = 0, // Room will auto-generate the ID
+                amount = currentState.amount.toDouble(),
+                type = currentState.transactionType,
+                categoryId = currentState.selectedCategory.id,
+                date = currentState.selectedDate.time, // Store date as Long
+                note = currentState.note
+            )
+            expenseRepository.addTransaction(transaction)
+            onSuccess()
         }
     }
 
-    /**
-     * 清除错误状态
-     */
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    /**
-     * 重置表单
-     */
-    fun resetForm() {
-        _uiState.value = AddTransactionUiState()
-    }
-
-    /**
-     * 获取当前类型的分类列表
-     */
-    fun getCategoriesForCurrentType(): List<Category> {
-        return _categories.value.filter { it.type == _uiState.value.transactionType }
+    private fun evaluateExpression(expression: String): Double {
+        return ExpressionBuilder(expression).build().evaluate()
     }
 }
-
-/**
- * 添加交易UI状态
- */
-data class AddTransactionUiState(
-    val transactionType: TransactionType = TransactionType.EXPENSE,
-    val amount: String = "",
-    val isAmountValid: Boolean = false,
-    val selectedCategory: Category? = null,
-    val note: String = "",
-    val selectedDate: Date = Date(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)

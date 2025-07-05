@@ -22,6 +22,7 @@ fun CalculatorKeyboard(
     onOperatorClick: (String) -> Unit,
     onDeleteClick: () -> Unit,
     onClearClick: () -> Unit,
+    onEqualsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -99,8 +100,8 @@ fun CalculatorKeyboard(
                 CalculatorButton("0", { onNumberClick("0") }, Modifier.weight(1f))
                 CalculatorButton(".", { onNumberClick(".") }, Modifier.weight(1f))
                 CalculatorButton(
-                    text = "✓",
-                    onClick = { /* 确认输入 */ },
+                    text = "=",
+                    onClick = onEqualsClick,
                     modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
