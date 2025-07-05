@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,13 +52,28 @@ fun AddTransactionScreen(
                     }
                 },
                 actions = {
-                    TextButton(
+                    Button(
                         onClick = {
                             viewModel.saveTransaction { onNavigateBack() }
                         },
-                        enabled = uiState.isAmountValid && uiState.selectedCategory != null
+                        enabled = uiState.isAmountValid && uiState.selectedCategory != null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text("保存")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text("保存")
+                        }
                     }
                 }
             )
@@ -121,10 +137,30 @@ fun AddTransactionScreen(
     }
 
     // 错误处理
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     uiState.error?.let { error ->
         LaunchedEffect(error) {
-            // TODO: 显示错误信息
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short
+            )
+            // 显示错误信息后清除错误
+            viewModel.clearError()
         }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Scaffold内容不变...
+
+        // 在屏幕底部显示Snackbar
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
     }
 }
 

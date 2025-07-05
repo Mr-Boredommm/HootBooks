@@ -125,4 +125,11 @@ class AddTransactionViewModel @Inject constructor(
     private fun evaluateExpression(expression: String): Double {
         return ExpressionBuilder(expression).build().evaluate()
     }
+
+    /**
+     * 清除错误信息
+     */
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
 }
