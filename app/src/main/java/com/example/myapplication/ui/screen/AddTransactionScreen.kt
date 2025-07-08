@@ -324,10 +324,13 @@ private fun DateAndNoteSection(
     onNoteChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 日期选择器状态
+    var showDateDialog by remember { mutableStateOf(false) }
+    
     Column(modifier = modifier) {
         // 日期选择
         OutlinedButton(
-            onClick = { /* TODO: 显示日期选择器 */ },
+            onClick = { showDateDialog = true },
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
@@ -349,6 +352,126 @@ private fun DateAndNoteSection(
             maxLines = 3
         )
     }
+    
+    // 显示日期选择对话框 - 使用自定义实现代替实验性API
+    if (showDateDialog) {
+        CustomDatePickerDialog(
+            selectedDate = selectedDate,
+            onDateSelected = { 
+                onDateSelected(it)
+                showDateDialog = false
+            },
+            onDismiss = { showDateDialog = false }
+        )
+    }
+}
+
+/**
+ * 自定义日期选择对话框
+ */
+@Composable
+private fun CustomDatePickerDialog(
+    selectedDate: Date,
+    onDateSelected: (Date) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val calendar = Calendar.getInstance().apply { time = selectedDate }
+    var year by remember { mutableStateOf(calendar.get(Calendar.YEAR)) }
+    var month by remember { mutableStateOf(calendar.get(Calendar.MONTH)) }
+    var day by remember { mutableStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择日期") },
+        text = {
+            Column {
+                // 年份选择
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("年份:", modifier = Modifier.width(60.dp))
+                    Slider(
+                        value = year.toFloat(),
+                        onValueChange = { year = it.toInt() },
+                        valueRange = 2020f..2030f,
+                        steps = 9,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(year.toString(), modifier = Modifier.width(50.dp))
+                }
+                
+                // 月份选择
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("月份:", modifier = Modifier.width(60.dp))
+                    Slider(
+                        value = month.toFloat(),
+                        onValueChange = { month = it.toInt() },
+                        valueRange = 0f..11f,
+                        steps = 11,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("${month + 1}", modifier = Modifier.width(50.dp))
+                }
+                
+                // 日期选择
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("日期:", modifier = Modifier.width(60.dp))
+                    val maxDay = getMaxDaysInMonth(year, month)
+                    Slider(
+                        value = day.toFloat().coerceAtMost(maxDay.toFloat()),
+                        onValueChange = { day = it.toInt().coerceAtMost(maxDay) },
+                        valueRange = 1f..maxDay.toFloat(),
+                        steps = maxDay - 1,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(day.toString(), modifier = Modifier.width(50.dp))
+                }
+                
+                // 显示选择的日期
+                Text(
+                    text = "${year}年${month + 1}月${day}日",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val newCalendar = Calendar.getInstance()
+                    newCalendar.set(year, month, day.coerceAtMost(getMaxDaysInMonth(year, month)))
+                    onDateSelected(newCalendar.time)
+                }
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 获取指定年月的最大天数
+ */
+private fun getMaxDaysInMonth(year: Int, month: Int): Int {
+    val calendar = Calendar.getInstance()
+    calendar.set(Calendar.YEAR, year)
+    calendar.set(Calendar.MONTH, month)
+    return calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 }
 
 /**
