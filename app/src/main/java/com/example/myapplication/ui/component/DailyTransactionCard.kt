@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter
 fun DailyTransactionCard(
     date: LocalDate,
     transactions: List<Transaction>,
+    getCategoryName: (Long) -> String,
     onTransactionClick: (Long) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     modifier: Modifier = Modifier
@@ -74,6 +75,7 @@ fun DailyTransactionCard(
             transactions.forEach { transaction ->
                 DailyTransactionItem(
                     transaction = transaction,
+                    categoryName = getCategoryName(transaction.categoryId),
                     onClick = { onTransactionClick(transaction.id) },
                     onDelete = { onDeleteTransaction(transaction) }
                 )
@@ -96,6 +98,7 @@ fun DailyTransactionCard(
 @Composable
 private fun DailyTransactionItem(
     transaction: Transaction,
+    categoryName: String,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -111,7 +114,7 @@ private fun DailyTransactionItem(
         ) {
             // 分类和备注
             Text(
-                text = "分类 ${transaction.categoryId}",
+                text = categoryName,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )

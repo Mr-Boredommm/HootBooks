@@ -2,6 +2,7 @@ package com.example.myapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.data.model.Category
 import com.example.myapplication.data.model.Transaction
 import com.example.myapplication.data.model.TransactionSummary
 import com.example.myapplication.data.repository.ExpenseRepository
@@ -32,8 +33,12 @@ class HomeViewModel @Inject constructor(
     private val _monthlySummary = MutableStateFlow(TransactionSummary())
     val monthlySummary: StateFlow<TransactionSummary> = _monthlySummary.asStateFlow()
 
+    private val _categories = MutableStateFlow<Map<Long, Category>>(emptyMap())
+    val categories: StateFlow<Map<Long, Category>> = _categories.asStateFlow()
+
     init {
         loadData()
+        loadCategories()
     }
 
     /**
@@ -84,6 +89,35 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * 加载分类数据
+     */
+    private fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                repository.getAllCategories()
+                    .catch { e ->
+                        _uiState.value = _uiState.value.copy(
+                            error = e.message
+                        )
+                    }
+                    .collect { categoryList ->
+                        // 将分类列表转换为ID映射的Map，方便快速查找
+                        _categories.value = categoryList.associateBy { it.id }
+                    }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    /**
+     * 获取分类名称
+     */
+    fun getCategoryName(categoryId: Long): String {
+        return _categories.value[categoryId]?.name ?: "未知分类"
+    }
+
+    /**
      * 删除交易记录
      */
     fun deleteTransaction(transaction: Transaction) {
@@ -101,6 +135,7 @@ class HomeViewModel @Inject constructor(
      */
     fun refresh() {
         loadData()
+        loadCategories()
     }
 
     /**

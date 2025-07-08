@@ -34,6 +34,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recentTransactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
     val monthlySummary by viewModel.monthlySummary.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
 
     // 按日期分组交易记录
     val groupedTransactions = remember(recentTransactions) {
@@ -46,7 +47,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "记账本",
+                        text = "糊涂账",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -120,6 +121,9 @@ fun HomeScreen(
                         DailyTransactionCard(
                             date = date,
                             transactions = transactions,
+                            getCategoryName = { categoryId ->
+                                categories[categoryId]?.name ?: "未知分类"
+                            },
                             onTransactionClick = onNavigateToTransactionDetail,
                             onDeleteTransaction = { viewModel.deleteTransaction(it) },
                             modifier = Modifier.fillMaxWidth()
