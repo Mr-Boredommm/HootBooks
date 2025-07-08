@@ -87,9 +87,37 @@ class StatisticsViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isLoading = true) }
 
-                // 获取过去6个月的数据
+                // 获取第一笔交易记录的时间
+                val firstTransactionDate = try {
+                    val firstTransaction = expenseRepository.getFirstTransaction()
+                    if (firstTransaction != null) {
+                        // 从时间戳获取 YearMonth
+                        val instant = java.time.Instant.ofEpochMilli(firstTransaction.date)
+                        val localDate = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        YearMonth.from(localDate)
+                    } else {
+                        // 如果没有交易记录，则默认显示最近6个月
+                        YearMonth.now().minusMonths(5)
+                    }
+                } catch (e: Exception) {
+                    // 如果出错，则默认显示最近6个月
+                    println("获取第一笔交易记录失败: ${e.message}")
+                    YearMonth.now().minusMonths(5)
+                }
+
+                // 获取当前月份
                 val currentMonth = YearMonth.now()
-                val months = (0..5).map { currentMonth.minusMonths(it.toLong()) }
+
+                // 计算需要显示的月份数量（使用更基础的方法计算）
+                val yearDiff = currentMonth.year - firstTransactionDate.year
+                val monthDiff = currentMonth.monthValue - firstTransactionDate.monthValue
+                val totalMonths = yearDiff * 12 + monthDiff
+                val monthCount = if (totalMonths < 0) -totalMonths + 1 else totalMonths + 1
+
+                // 生成所有需要显示的月份
+                val months = (0 until monthCount).map { currentMonth.minusMonths(it.toLong()) }
+
+                println("显示从 ${firstTransactionDate.year}年${firstTransactionDate.monthValue}月 到 ${currentMonth.year}年${currentMonth.monthValue}月 的统计数据")
 
                 val result = mutableListOf<MonthlyStats>()
 
@@ -97,8 +125,9 @@ class StatisticsViewModel @Inject constructor(
                     val startDate = month.atDay(1)
                     val endDate = month.atEndOfMonth()
 
-                    // 获取该月交易数据
-                    expenseRepository.getTransactionsByDateRange(startDate, endDate).collect { transactions ->
+                    try {
+                        // 获取该月交易数据
+                        val transactions = expenseRepository.getTransactionsByDateRangeSync(startDate, endDate)
                         val income = transactions
                             .filter { it.type == TransactionType.INCOME }
                             .sumOf { it.amount }
@@ -114,13 +143,26 @@ class StatisticsViewModel @Inject constructor(
                                 expense = expense
                             )
                         )
-
-                        if (result.size == months.size) {
-                            _monthlyStats.value = result.sortedBy { it.yearMonth }
-                            _uiState.update { it.copy(isLoading = false) }
-                        }
+                    } catch (e: Exception) {
+                        // 单个月份加载失败，添加一个空的统计数据
+                        println("加载 ${month.year}年${month.monthValue}月 数据失败: ${e.message}")
+                        result.add(
+                            MonthlyStats(
+                                yearMonth = month,
+                                income = 0.0,
+                                expense = 0.0
+                            )
+                        )
                     }
                 }
+
+                // 按月份排序（从近到远）并且打印日志
+                val sortedResult = result.sortedByDescending { it.yearMonth }
+                sortedResult.forEach {
+                    println("月度统计: ${it.yearMonth.year}年${it.yearMonth.monthValue}月, 收入: ${it.income}, 支出: ${it.expense}")
+                }
+                _monthlyStats.value = sortedResult
+                _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "加载月度统计数据失败: ${e.message}") }
             }

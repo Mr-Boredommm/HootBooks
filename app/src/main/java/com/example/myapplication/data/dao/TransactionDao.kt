@@ -129,6 +129,18 @@ interface TransactionDao {
      */
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun getTransactionCountByCategory(categoryId: Long): Int
+
+    /**
+     * 根据日期范围获取交易记录（同步版本）
+     */
+    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    suspend fun getTransactionsByDateRangeSync(startDate: Long, endDate: Long): List<Transaction>
+
+    /**
+     * 获取第一笔交易记录（按时间最早排序）
+     */
+    @Query("SELECT * FROM transactions ORDER BY date ASC LIMIT 1")
+    suspend fun getFirstTransaction(): Transaction?
 }
 
 /**

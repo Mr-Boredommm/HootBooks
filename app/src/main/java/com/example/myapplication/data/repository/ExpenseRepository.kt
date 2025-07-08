@@ -42,6 +42,15 @@ class ExpenseRepository @Inject constructor(
     }
 
     /**
+     * 根据日期范围获取交易记录 (同步版本)
+     */
+    suspend fun getTransactionsByDateRangeSync(startDate: LocalDate, endDate: LocalDate): List<Transaction> {
+        val startTimestamp = startDate.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000
+        val endTimestamp = endDate.atTime(23, 59, 59).toEpochSecond(ZoneOffset.UTC) * 1000
+        return transactionDao.getTransactionsByDateRangeSync(startTimestamp, endTimestamp)
+    }
+
+    /**
      * 获取最近的交易记录
      */
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>> =
@@ -76,6 +85,13 @@ class ExpenseRepository @Inject constructor(
      */
     fun searchTransactions(query: String): Flow<List<Transaction>> =
         transactionDao.searchTransactions(query)
+
+    /**
+     * 获取第一笔交易记录（按时间最早排序）
+     */
+    suspend fun getFirstTransaction(): Transaction? {
+        return transactionDao.getFirstTransaction()
+    }
 
     // ==================== 分类相关操作 ====================
 
