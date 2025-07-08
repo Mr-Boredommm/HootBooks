@@ -380,6 +380,13 @@ private fun CustomDatePickerDialog(
     var month by remember { mutableStateOf(calendar.get(Calendar.MONTH)) }
     var day by remember { mutableStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
 
+    // 动态计算年份范围：当前年份的前10年到后10年
+    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+    val minYear = currentYear - 10
+    val maxYear = currentYear + 10
+    val yearRange = minYear.toFloat()..maxYear.toFloat()
+    val yearSteps = maxYear - minYear
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("选择日期") },
@@ -394,8 +401,8 @@ private fun CustomDatePickerDialog(
                     Slider(
                         value = year.toFloat(),
                         onValueChange = { year = it.toInt() },
-                        valueRange = 2020f..2030f,
-                        steps = 9,
+                        valueRange = yearRange,
+                        steps = yearSteps,
                         modifier = Modifier.weight(1f)
                     )
                     Text(year.toString(), modifier = Modifier.width(50.dp))
