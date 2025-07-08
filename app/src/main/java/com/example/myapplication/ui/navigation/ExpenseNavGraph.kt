@@ -56,7 +56,7 @@ fun ExpenseNavGraph(
             )
         }
 
-        // 交易详情页面（预留）
+        // 交易详情页面（编辑功能）
         composable(
             route = Routes.TRANSACTION_DETAIL,
             arguments = listOf(
@@ -64,11 +64,10 @@ fun ExpenseNavGraph(
             )
         ) { backStackEntry ->
             val transactionId = backStackEntry.arguments?.getLong("transactionId") ?: 0L
-            // TODO: 实现交易详情页面
-            // TransactionDetailScreen(
-            //     transactionId = transactionId,
-            //     onNavigateBack = { navController.popBackStack() }
-            // )
+            AddTransactionScreen(
+                transactionId = transactionId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

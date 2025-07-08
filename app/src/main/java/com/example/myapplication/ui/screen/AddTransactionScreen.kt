@@ -27,22 +27,34 @@ import com.example.myapplication.ui.viewmodel.AddTransactionViewModel
 import java.util.*
 
 /**
- * 添加交易页面
+ * 添加或编辑交易页面
  * 提供交易类型选择、分类选择、金额输入和备注功能
+ * @param transactionId 如果是编辑模式，则提供交易ID；如果是添加模式，则为null
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
+    transactionId: Long? = null,
     onNavigateBack: () -> Unit,
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
+    // 加载交易数据
+    LaunchedEffect(transactionId) {
+        if (transactionId != null && transactionId > 0) {
+            viewModel.loadTransaction(transactionId)
+        }
+    }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+
+    val isEditMode = transactionId != null && transactionId > 0
+    val screenTitle = if (isEditMode) "编辑交易" else "添加交易"
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("添加交易") },
+                title = { Text(screenTitle) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -54,7 +66,7 @@ fun AddTransactionScreen(
                 actions = {
                     Button(
                         onClick = {
-                            viewModel.saveTransaction { onNavigateBack() }
+                            viewModel.saveTransaction(isEditMode) { onNavigateBack() }
                         },
                         enabled = uiState.isAmountValid && uiState.selectedCategory != null,
                         colors = ButtonDefaults.buttonColors(

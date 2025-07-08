@@ -28,7 +28,9 @@ data class AddTransactionUiState(
     val selectedDate: Date = Date(),
     val note: String = "",
     val isAmountValid: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val transactionId: Long = 0, // 添加交易ID字段，用于区分新增和编辑模式
+    val isLoading: Boolean = false // 添加加载状态
 )
 
 @HiltViewModel
@@ -97,28 +99,95 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
-    fun saveTransaction(onSuccess: () -> Unit) {
+    /**
+     * 加载交易数据用于编辑
+     */
+    fun loadTransaction(transactionId: Long) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
+
+                // 获取交易数据
+                expenseRepository.getTransactionById(transactionId)?.let { transaction ->
+                    // 获取分类信息
+                    val category = expenseRepository.getCategoryById(transaction.categoryId)
+
+                    // 更新UI状态
+                    _uiState.update {
+                        it.copy(
+                            transactionId = transaction.id,
+                            amount = transaction.amount.toString(),
+                            transactionType = transaction.type,
+                            selectedCategory = category,
+                            selectedDate = Date(transaction.date),
+                            note = transaction.note,
+                            isAmountValid = true,
+                            isLoading = false
+                        )
+                    }
+                } ?: run {
+                    // 如果找不到交易记录
+                    _uiState.update {
+                        it.copy(
+                            error = "找不到该交易记录",
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        error = "加载交易数据失败: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 保存交易数据（新增或更新）
+     * @param isEditMode 是否为编辑模式
+     * @param onSuccess 成功回调
+     */
+    fun saveTransaction(isEditMode: Boolean, onSuccess: () -> Unit) {
         viewModelScope.launch {
             val currentState = _uiState.value
+
+            // 验证输入
             if (currentState.selectedCategory == null) {
-                _uiState.update { it.copy(error = "Please select a category") }
-                return@launch
-            }
-            if (currentState.amount.toDoubleOrNull() == null || currentState.amount.toDouble() <= 0) {
-                _uiState.update { it.copy(error = "Invalid amount") }
+                _uiState.update { it.copy(error = "请选择分类") }
                 return@launch
             }
 
-            val transaction = Transaction(
-                id = 0, // Room will auto-generate the ID
-                amount = currentState.amount.toDouble(),
-                type = currentState.transactionType,
-                categoryId = currentState.selectedCategory.id,
-                date = currentState.selectedDate.time, // Store date as Long
-                note = currentState.note
-            )
-            expenseRepository.addTransaction(transaction)
-            onSuccess()
+            val amountValue = currentState.amount.toDoubleOrNull()
+            if (amountValue == null || amountValue <= 0) {
+                _uiState.update { it.copy(error = "请输入有效金额") }
+                return@launch
+            }
+
+            try {
+                val transaction = Transaction(
+                    id = if (isEditMode) currentState.transactionId else 0, // 编辑模式使用现有ID，新增模式使用0
+                    amount = amountValue,
+                    type = currentState.transactionType,
+                    categoryId = currentState.selectedCategory.id,
+                    date = currentState.selectedDate.time,
+                    note = currentState.note
+                )
+
+                if (isEditMode) {
+                    // 更新现有交易
+                    expenseRepository.updateTransaction(transaction)
+                } else {
+                    // 添加新交易
+                    expenseRepository.addTransaction(transaction)
+                }
+
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "保存失败: ${e.message}") }
+            }
         }
     }
 
