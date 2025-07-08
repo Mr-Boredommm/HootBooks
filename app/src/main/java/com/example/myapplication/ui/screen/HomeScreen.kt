@@ -64,11 +64,13 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAddTransaction,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp)  // 调整按钮大小
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "添加交易"
+                    contentDescription = "添加交易",
+                    modifier = Modifier.size(36.dp)  // 同时放大图标
                 )
             }
         }
