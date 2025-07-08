@@ -2,23 +2,24 @@
 
 一款简洁易用的个人记账软件，帮助您轻松管理日常收支，掌握财务状况。
 
-<img src="C:\Users\Boredommm\AppData\Roaming\Typora\typora-user-images\image-20250708224242534.png" alt="image-20250708224242534" style="zoom:25%;" />
+<img src="E:\Code\MyApplication2\image-20250708225658688.png" alt="image-20250708225658688" style="zoom:25%;" />
 
 ## 功能特点 ✨
 
 ### 收支记录 📝
+
 - 快速添加收入和支出记录
 - 自定义分类管理
 - 添加备注信息
 - 日期选择灵活方便
 
-<img src="C:\Users\Boredommm\AppData\Roaming\Typora\typora-user-images\image-20250708224316826.png" alt="image-20250708224316826" style="zoom:25%;" />
+<img src="E:\Code\MyApplication2\image-20250708225732413.png" alt="image-20250708225732413" style="zoom:25%;" />
 
 ### 数据统计 📊
 - 月度收支汇总
 - 分类消费占比分析
 
-<img src="C:\Users\Boredommm\AppData\Roaming\Typora\typora-user-images\image-20250708224402454.png" alt="image-20250708224402454" style="zoom:25%;" />
+<img src="E:\Code\MyApplication2\image-20250708225750211.png" alt="image-20250708225750211" style="zoom:25%;" />
 
 ### 贴心设计 💡
 
