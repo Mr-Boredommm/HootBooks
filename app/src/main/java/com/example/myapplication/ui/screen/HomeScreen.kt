@@ -9,17 +9,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.myapplication.data.model.Transaction
-import com.example.myapplication.data.model.TransactionType
-import com.example.myapplication.ui.component.TransactionItem
+import com.example.myapplication.ui.component.DailyTransactionCard
 import com.example.myapplication.ui.component.MonthlySummaryCard
-import com.example.myapplication.ui.theme.IncomeGreen
-import com.example.myapplication.ui.theme.ExpenseRed
+import com.example.myapplication.ui.component.getLocalDate
 import com.example.myapplication.ui.viewmodel.HomeViewModel
 
 /**
@@ -37,6 +34,12 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recentTransactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
     val monthlySummary by viewModel.monthlySummary.collectAsStateWithLifecycle()
+
+    // 按日期分组交易记录
+    val groupedTransactions = remember(recentTransactions) {
+        recentTransactions.groupBy { it.getLocalDate() }
+            .toSortedMap(compareByDescending { it })
+    }
 
     Scaffold(
         topBar = {
@@ -104,20 +107,24 @@ fun HomeScreen(
                 }
             }
 
-            // 交易列表
-            if (recentTransactions.isEmpty() && !uiState.isLoading) {
+            // 按日期分组显示交易记录
+            if (groupedTransactions.isEmpty() && !uiState.isLoading) {
                 item {
                     EmptyTransactionState(
                         onAddTransaction = onNavigateToAddTransaction
                     )
                 }
             } else {
-                items(recentTransactions) { transaction ->
-                    TransactionItem(
-                        transaction = transaction,
-                        onClick = { onNavigateToTransactionDetail(transaction.id) },
-                        onDelete = { viewModel.deleteTransaction(transaction) }
-                    )
+                groupedTransactions.forEach { (date, transactions) ->
+                    item {
+                        DailyTransactionCard(
+                            date = date,
+                            transactions = transactions,
+                            onTransactionClick = onNavigateToTransactionDetail,
+                            onDeleteTransaction = { viewModel.deleteTransaction(it) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
