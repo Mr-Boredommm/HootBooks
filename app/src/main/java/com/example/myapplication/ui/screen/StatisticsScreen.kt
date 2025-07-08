@@ -238,7 +238,7 @@ private fun MonthlyStatsCard(
                     text = stats.getFormattedBalance(),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = if (stats.balance >= 0) IncomeGreen else ExpenseRed
+                    color = if ((stats.income - stats.expense) >= 0) IncomeGreen else ExpenseRed
                 )
             }
         }
@@ -309,7 +309,7 @@ private fun CategoryStatsCard(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "${stats.transactionCount}笔交易",
+                        text = "占比 ${stats.getFormattedPercentage()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -321,11 +321,6 @@ private fun CategoryStatsCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (stats.type == TransactionType.INCOME) IncomeGreen else ExpenseRed
-                    )
-                    Text(
-                        text = "${String.format("%.1f", stats.getPercentage(totalAmount))}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -343,7 +338,7 @@ private fun CategoryStatsCard(
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(stats.getPercentage(totalAmount) / 100f)
+                        .fillMaxWidth(stats.percentage.toFloat() / 100f)
                         .background(
                             if (stats.type == TransactionType.INCOME) IncomeGreen else ExpenseRed,
                             RoundedCornerShape(3.dp)

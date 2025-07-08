@@ -2,26 +2,64 @@ package com.example.myapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.model.Transaction
 import com.example.myapplication.data.model.TransactionType
 import com.example.myapplication.data.repository.ExpenseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 
 /**
- * 统计页面ViewModel
- * 管理统计数据的加载和处理
+ * 统计数据UI状态
  */
+data class StatisticsUiState(
+    val isLoading: Boolean = true,
+    val error: String? = null
+)
+
+/**
+ * 月度统计数据
+ */
+data class MonthlyStats(
+    val yearMonth: YearMonth,
+    val income: Double,
+    val expense: Double
+) {
+    fun getMonthName(): String {
+        return yearMonth.format(DateTimeFormatter.ofPattern("yyyy年MM月", Locale.CHINESE))
+    }
+
+    fun getFormattedIncome(): String = "¥%.2f".format(income)
+    fun getFormattedExpense(): String = "¥%.2f".format(expense)
+    fun getFormattedBalance(): String = "¥%.2f".format(income - expense)
+}
+
+/**
+ * 分类统计数据
+ */
+data class CategoryStats(
+    val categoryId: Long,
+    val categoryName: String,
+    val type: TransactionType,
+    val amount: Double,
+    val percentage: Double,
+    val iconName: String
+) {
+    fun getFormattedAmount(): String = "¥%.2f".format(amount)
+    fun getFormattedPercentage(): String = "%.1f%%".format(percentage)
+}
+
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
-    private val repository: ExpenseRepository
+    private val expenseRepository: ExpenseRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatisticsUiState())
@@ -37,168 +75,129 @@ class StatisticsViewModel @Inject constructor(
     val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
 
     init {
-        loadStatistics()
-    }
-
-    /**
-     * 加载统计数据
-     */
-    private fun loadStatistics() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-            try {
-                // 加载月度统计
-                loadMonthlyStatistics()
-
-                // 加载分类统计
-                loadCategoryStatistics()
-
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
-            }
-        }
+        loadMonthlyStats()
+        loadCategoryStats()
     }
 
     /**
      * 加载月度统计数据
      */
-    private suspend fun loadMonthlyStatistics() {
-        val currentMonth = YearMonth.now()
-        val months = (0..5).map { currentMonth.minusMonths(it.toLong()) }
+    private fun loadMonthlyStats() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
 
-        val monthlyStatsList = mutableListOf<MonthlyStats>()
+                // 获取过去6个月的数据
+                val currentMonth = YearMonth.now()
+                val months = (0..5).map { currentMonth.minusMonths(it.toLong()) }
 
-        months.forEach { month ->
-            repository.getTransactionsByMonth(month.year, month.monthValue)
-                .catch { /* 忽略错误，继续处理其他月份 */ }
-                .collect { transactions ->
-                    val income = transactions.filter { it.type == TransactionType.INCOME }
-                        .sumOf { it.amount }
-                    val expense = transactions.filter { it.type == TransactionType.EXPENSE }
-                        .sumOf { it.amount }
+                val result = mutableListOf<MonthlyStats>()
 
-                    monthlyStatsList.add(
-                        MonthlyStats(
-                            month = month,
-                            income = income,
-                            expense = expense,
-                            balance = income - expense,
-                            transactionCount = transactions.size
+                for (month in months) {
+                    val startDate = month.atDay(1)
+                    val endDate = month.atEndOfMonth()
+
+                    // 获取该月交易数据
+                    expenseRepository.getTransactionsByDateRange(startDate, endDate).collect { transactions ->
+                        val income = transactions
+                            .filter { it.type == TransactionType.INCOME }
+                            .sumOf { it.amount }
+
+                        val expense = transactions
+                            .filter { it.type == TransactionType.EXPENSE }
+                            .sumOf { it.amount }
+
+                        result.add(
+                            MonthlyStats(
+                                yearMonth = month,
+                                income = income,
+                                expense = expense
+                            )
                         )
-                    )
-                }
-        }
 
-        _monthlyStats.value = monthlyStatsList.sortedByDescending { it.month }
+                        if (result.size == months.size) {
+                            _monthlyStats.value = result.sortedBy { it.yearMonth }
+                            _uiState.update { it.copy(isLoading = false) }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "加载月度统计数据失败: ${e.message}") }
+            }
+        }
     }
 
     /**
      * 加载分类统计数据
      */
-    private suspend fun loadCategoryStatistics() {
-        val month = _selectedMonth.value
-        repository.getTransactionsByMonth(month.year, month.monthValue)
-            .catch { e ->
-                _uiState.value = _uiState.value.copy(error = e.message)
-            }
-            .collect { transactions ->
-                val categoryMap = mutableMapOf<Long, CategoryStats>()
+    private fun loadCategoryStats() {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
 
-                transactions.forEach { transaction ->
-                    val existing = categoryMap[transaction.categoryId]
-                    if (existing != null) {
-                        categoryMap[transaction.categoryId] = existing.copy(
-                            amount = existing.amount + transaction.amount,
-                            transactionCount = existing.transactionCount + 1
-                        )
-                    } else {
-                        // 获取分类信息
-                        val category = repository.getCategoryById(transaction.categoryId)
-                        val categoryName = category?.name ?: "未知分类"
+                val month = _selectedMonth.value
+                val startDate = month.atDay(1)
+                val endDate = month.atEndOfMonth()
 
-                        categoryMap[transaction.categoryId] = CategoryStats(
-                            categoryId = transaction.categoryId,
-                            categoryName = categoryName,
-                            amount = transaction.amount,
-                            transactionCount = 1,
-                            type = transaction.type
-                        )
+                // 获取该月交易数据
+                expenseRepository.getTransactionsByDateRange(startDate, endDate)
+                    .collect { transactions ->
+                        // 获取所有分类
+                        expenseRepository.getAllCategories().collect { categories ->
+                            val categoryMap = categories.associateBy { it.id }
+
+                            // 按类型和分类统计金额
+                            val statsByCategory = transactions.groupBy {
+                                it.type to it.categoryId
+                            }.map { (key, txs) ->
+                                val (type, categoryId) = key
+                                val category = categoryMap[categoryId]
+
+                                val amount = txs.sumOf { it.amount }
+
+                                // 计算在同类型中的百分比
+                                val totalAmount = transactions
+                                    .filter { it.type == type }
+                                    .sumOf { it.amount }
+
+                                val percentage = if (totalAmount > 0) {
+                                    (amount / totalAmount) * 100
+                                } else {
+                                    0.0
+                                }
+
+                                CategoryStats(
+                                    categoryId = categoryId,
+                                    categoryName = category?.name ?: "未知分类",
+                                    type = type,
+                                    amount = amount,
+                                    percentage = percentage,
+                                    iconName = category?.icon ?: "help_outline"
+                                )
+                            }.sortedByDescending { it.amount }
+
+                            _categoryStats.value = statsByCategory
+                            _uiState.update { it.copy(isLoading = false) }
+                        }
                     }
-                }
-
-                _categoryStats.value = categoryMap.values.toList()
-                    .sortedByDescending { it.amount }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "加载分类统计数据失败: ${e.message}") }
             }
+        }
     }
 
     /**
      * 选择月份
      */
-    fun selectMonth(month: YearMonth) {
-        _selectedMonth.value = month
-        viewModelScope.launch {
-            loadCategoryStatistics()
-        }
+    fun selectMonth(yearMonth: YearMonth) {
+        _selectedMonth.value = yearMonth
+        loadCategoryStats() // 重新加载所选月份的分类统计
     }
 
     /**
-     * 刷新数据
-     */
-    fun refresh() {
-        loadStatistics()
-    }
-
-    /**
-     * 清除错误状态
+     * 清除错误信息
      */
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
-}
-
-/**
- * 统计页面UI状态
- */
-data class StatisticsUiState(
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
-
-/**
- * 月度统计数据
- */
-data class MonthlyStats(
-    val month: YearMonth,
-    val income: Double,
-    val expense: Double,
-    val balance: Double,
-    val transactionCount: Int
-) {
-    fun getFormattedIncome(): String = "¥${String.format("%.2f", income)}"
-    fun getFormattedExpense(): String = "¥${String.format("%.2f", expense)}"
-    fun getFormattedBalance(): String {
-        val symbol = if (balance >= 0) "+" else ""
-        return "$symbol¥${String.format("%.2f", balance)}"
-    }
-    fun getMonthName(): String = "${month.year}年${month.monthValue}月"
-}
-
-/**
- * 分类统计数据
- */
-data class CategoryStats(
-    val categoryId: Long,
-    val categoryName: String,
-    val amount: Double,
-    val transactionCount: Int,
-    val type: TransactionType
-) {
-    fun getFormattedAmount(): String = "¥${String.format("%.2f", amount)}"
-    fun getPercentage(total: Double): Float =
-        if (total > 0) (amount / total * 100).toFloat() else 0f
 }
