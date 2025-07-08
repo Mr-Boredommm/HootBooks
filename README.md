@@ -2,7 +2,9 @@
 
 一款简洁易用的个人记账软件，帮助您轻松管理日常收支，掌握财务状况。
 
-<img src="E:\Code\MyApplication2\image-20250708225658688.png" alt="image-20250708225658688" style="zoom:25%;" />
+<div align=center>
+<img src="https://github.com/Mr-Boredommm/HootBooks/blob/main/image-20250708225658688.png" width="20%">
+</div>
 
 ## 功能特点 ✨
 
@@ -13,13 +15,17 @@
 - 添加备注信息
 - 日期选择灵活方便
 
-<img src="E:\Code\MyApplication2\image-20250708225732413.png" alt="image-20250708225732413" style="zoom:25%;" />
+<div align=center>
+<img src="https://github.com/Mr-Boredommm/HootBooks/blob/main/image-20250708225658688.png" width="20%">
+</div>
 
 ### 数据统计 📊
 - 月度收支汇总
 - 分类消费占比分析
 
-<img src="E:\Code\MyApplication2\image-20250708225750211.png" alt="image-20250708225750211" style="zoom:25%;" />
+<div align=center>
+<img src="https://github.com/Mr-Boredommm/HootBooks/blob/main/image-20250708225750211.png" width="20%">
+</div>
 
 ### 贴心设计 💡
 
