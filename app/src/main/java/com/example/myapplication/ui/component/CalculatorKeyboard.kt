@@ -31,78 +31,61 @@ fun CalculatorKeyboard(
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 第一行：7, 8, 9, 删除
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("7", { onNumberClick("7") }, Modifier.weight(1f))
-                CalculatorButton("8", { onNumberClick("8") }, Modifier.weight(1f))
-                CalculatorButton("9", { onNumberClick("9") }, Modifier.weight(1f))
+            KeyboardRow {
+                CalculatorButton("7", { onNumberClick("7") })
+                CalculatorButton("8", { onNumberClick("8") })
+                CalculatorButton("9", { onNumberClick("9") })
                 CalculatorIconButton(
                     icon = Icons.Default.Backspace,
                     onClick = onDeleteClick,
-                    modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
 
             // 第二行：4, 5, 6, +
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("4", { onNumberClick("4") }, Modifier.weight(1f))
-                CalculatorButton("5", { onNumberClick("5") }, Modifier.weight(1f))
-                CalculatorButton("6", { onNumberClick("6") }, Modifier.weight(1f))
+            KeyboardRow {
+                CalculatorButton("4", { onNumberClick("4") })
+                CalculatorButton("5", { onNumberClick("5") })
+                CalculatorButton("6", { onNumberClick("6") })
                 CalculatorButton(
                     text = "+",
                     onClick = { onOperatorClick("+") },
-                    modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
 
             // 第三行：1, 2, 3, -
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CalculatorButton("1", { onNumberClick("1") }, Modifier.weight(1f))
-                CalculatorButton("2", { onNumberClick("2") }, Modifier.weight(1f))
-                CalculatorButton("3", { onNumberClick("3") }, Modifier.weight(1f))
+            KeyboardRow {
+                CalculatorButton("1", { onNumberClick("1") })
+                CalculatorButton("2", { onNumberClick("2") })
+                CalculatorButton("3", { onNumberClick("3") })
                 CalculatorButton(
                     text = "-",
                     onClick = { onOperatorClick("-") },
-                    modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
 
             // 第四行：C, 0, ., 确认
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            KeyboardRow {
                 CalculatorButton(
                     text = "C",
                     onClick = onClearClick,
-                    modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer
                 )
-                CalculatorButton("0", { onNumberClick("0") }, Modifier.weight(1f))
-                CalculatorButton(".", { onNumberClick(".") }, Modifier.weight(1f))
+                CalculatorButton("0", { onNumberClick("0") })
+                CalculatorButton(".", { onNumberClick(".") })
                 CalculatorButton(
                     text = "=",
                     onClick = onEqualsClick,
-                    modifier = Modifier.weight(1f),
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -112,10 +95,24 @@ fun CalculatorKeyboard(
 }
 
 /**
- * 计算器按钮组件 - 固定尺寸版本
+ * 键盘行容器，确保按钮均匀分布
  */
 @Composable
-private fun CalculatorButton(
+private fun KeyboardRow(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
+}
+
+/**
+ * 计算器按钮组件
+ */
+@Composable
+private fun RowScope.CalculatorButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -125,13 +122,14 @@ private fun CalculatorButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .aspectRatio(1f)
-            .height(56.dp), // 固定高度，确保一致性
+            .weight(1f)
+            .aspectRatio(1f),
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
             contentColor = contentColor
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             text = text,
@@ -142,10 +140,10 @@ private fun CalculatorButton(
 }
 
 /**
- * 计算器图标按钮组件 - 固定尺寸版本
+ * 计算器图标按钮组件
  */
 @Composable
-private fun CalculatorIconButton(
+private fun RowScope.CalculatorIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -155,18 +153,19 @@ private fun CalculatorIconButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .aspectRatio(1f)
-            .height(56.dp), // 固定高度，确保一致性
+            .weight(1f)
+            .aspectRatio(1f),
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
             contentColor = contentColor
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(0.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp) // 固定图标大小
+            modifier = Modifier.size(24.dp)
         )
     }
 }

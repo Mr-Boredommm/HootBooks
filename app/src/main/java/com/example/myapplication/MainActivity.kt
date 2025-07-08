@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
 
         // 设置目标密度为2.0，这相当于中等偏小的显示尺寸
         // 这个值可以根据实际效果进行调整
-        val targetDensity = 2.7f
+        val targetDensity = 2.5f
         val targetDensityDpi = (160 * targetDensity).toInt()
         val targetScaledDensity = targetDensity
 
