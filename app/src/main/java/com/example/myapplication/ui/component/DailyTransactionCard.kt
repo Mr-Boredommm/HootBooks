@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -102,6 +102,8 @@ private fun DailyTransactionItem(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -150,7 +152,7 @@ private fun DailyTransactionItem(
             )
 
             IconButton(
-                onClick = onDelete,
+                onClick = { showDeleteConfirmDialog = true },
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
@@ -160,6 +162,32 @@ private fun DailyTransactionItem(
                 )
             }
         }
+    }
+
+    // 删除确认对话框
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除这条交易记录吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirmDialog = false
+                    }
+                ) {
+                    Text("确定删除", color = ExpenseRed)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmDialog = false }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 
